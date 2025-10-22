@@ -6,6 +6,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
+const axios = require('axios');
 
 // Cargar configuración desde .env o config.json
 let config;
@@ -60,6 +61,162 @@ app.use(express.static('public'));
 // Ruta principal - Panel de control
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// OAuth: Redirigir al usuario a MercadoLibre para autorizar
+app.get('/auth', (req, res) => {
+  const ML_AUTH_URL = 'https://auth.mercadolibre.cl/authorization';
+  const authUrl = `${ML_AUTH_URL}?response_type=code&client_id=${config.mercadolibre.clientId}&redirect_uri=${config.mercadolibre.redirectUri}`;
+  
+  console.log('📋 Redirigiendo a MercadoLibre para autorización...');
+  res.redirect(authUrl);
+});
+
+// OAuth: Callback - Recibir el código de autorización y obtener el access token
+app.get('/callback', async (req, res) => {
+  const { code, error } = req.query;
+  const ML_TOKEN_URL = 'https://api.mercadolibre.com/oauth/token';
+
+  if (error) {
+    console.error('❌ Error en la autorización:', error);
+    return res.send(`
+      <h1>❌ Error en la autorización</h1>
+      <p>${error}</p>
+      <a href="/">Volver al inicio</a>
+    `);
+  }
+
+  if (!code) {
+    return res.send(`
+      <h1>⚠️ No se recibió código de autorización</h1>
+      <a href="/auth">Iniciar autorización</a>
+    `);
+  }
+
+  try {
+    console.log('✅ Código recibido, obteniendo access token...');
+
+    // Intercambiar el código por un access token
+    const response = await axios.post(ML_TOKEN_URL, {
+      grant_type: 'authorization_code',
+      client_id: config.mercadolibre.clientId,
+      client_secret: config.mercadolibre.clientSecret,
+      code: code,
+      redirect_uri: config.mercadolibre.redirectUri
+    });
+
+    const { access_token, refresh_token, expires_in } = response.data;
+
+    console.log('\n' + '='.repeat(70));
+    console.log('✅ ACCESS TOKEN OBTENIDO EXITOSAMENTE');
+    console.log('='.repeat(70));
+    console.log('\nAccess Token:', access_token);
+    console.log('\nRefresh Token:', refresh_token);
+    console.log(`\n⏰ Expira en: ${expires_in} segundos (${expires_in / 3600} horas)`);
+    console.log('='.repeat(70) + '\n');
+
+    // Mostrar en el navegador
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>✅ Token Obtenido</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 { color: #28a745; }
+          .token-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+          }
+          .warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+          }
+          button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+          }
+          button:hover { background: #218838; }
+          .btn-secondary { background: #007bff; }
+          .btn-secondary:hover { background: #0056b3; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>✅ Access Token Obtenido Exitosamente</h1>
+          
+          <h3>🔑 Access Token:</h3>
+          <div class="token-box" id="accessToken">${access_token}</div>
+          <button onclick="copyToken('accessToken')">📋 Copiar Access Token</button>
+          
+          <h3>🔄 Refresh Token:</h3>
+          <div class="token-box" id="refreshToken">${refresh_token}</div>
+          <button onclick="copyToken('refreshToken')">📋 Copiar Refresh Token</button>
+          
+          <div class="warning">
+            <strong>⚠️ IMPORTANTE:</strong>
+            <ul>
+              <li>Copia el <strong>Access Token</strong></li>
+              <li>Ve a DigitalOcean → Settings → Environment Variables</li>
+              <li>Edita <code>ML_ACCESS_TOKEN</code> y pega el token</li>
+              <li>Guarda y espera que se reinicie la app</li>
+              <li>El token expira en <strong>${expires_in / 3600} horas</strong></li>
+            </ul>
+          </div>
+
+          <button onclick="window.location.href='/'" class="btn-secondary">
+            ← Volver al Panel
+          </button>
+        </div>
+
+        <script>
+          function copyToken(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+              alert('✅ Token copiado al portapapeles');
+            });
+          }
+        </script>
+      </body>
+      </html>
+    `);
+
+  } catch (error) {
+    console.error('❌ Error al obtener el token:', error.response?.data || error.message);
+    res.send(`
+      <h1>❌ Error al obtener el token</h1>
+      <pre>${JSON.stringify(error.response?.data || error.message, null, 2)}</pre>
+      <a href="/">Volver al inicio</a>
+    `);
+  }
 });
 
 // API: Procesar producto por ID de Kinguin
