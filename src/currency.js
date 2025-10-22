@@ -1,6 +1,18 @@
 // Módulo para convertir EUR a CLP usando API pública
 const axios = require('axios');
-const config = require('../config/config.json');
+
+// Cargar config desde variables de entorno o archivo
+let config;
+try {
+  config = require('../config/config.json');
+} catch (error) {
+  config = {
+    currency: {
+      apiUrl: process.env.CURRENCY_API_URL || 'https://api.exchangerate-api.com/v4/latest/EUR'
+    },
+    priceMarkup: parseFloat(process.env.PRICE_MARKUP) || 1.4
+  };
+}
 
 /**
  * Obtiene la tasa de cambio actual de EUR a CLP

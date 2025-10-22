@@ -1,6 +1,19 @@
 // Módulo para interactuar con la API de Kinguin
 const axios = require('axios');
-const config = require('../config/config.json');
+
+// Cargar config desde variables de entorno o archivo
+let config;
+try {
+  config = require('../config/config.json');
+} catch (error) {
+  // Usar variables de entorno en producción
+  config = {
+    kinguin: {
+      apiKey: process.env.KINGUIN_API_KEY,
+      apiUrl: process.env.KINGUIN_API_URL || 'https://gateway.kinguin.net/esa/api/v1'
+    }
+  };
+}
 
 /**
  * Obtiene información de un producto de Kinguin por su ID
