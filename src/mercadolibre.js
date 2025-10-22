@@ -1,6 +1,20 @@
 // Módulo para publicar productos en MercadoLibre
 const axios = require('axios');
-const config = require('../config/config.json');
+
+// Cargar config desde variables de entorno o archivo
+let config;
+try {
+  config = require('../config/config.json');
+} catch (error) {
+  config = {
+    mercadolibre: {
+      clientId: process.env.ML_CLIENT_ID,
+      clientSecret: process.env.ML_CLIENT_SECRET,
+      accessToken: process.env.ML_ACCESS_TOKEN,
+      redirectUri: process.env.ML_REDIRECT_URI
+    }
+  };
+}
 
 /**
  * Publica un producto en MercadoLibre
