@@ -1,0 +1,28 @@
+# Dependencias
+node_modules/
+package-lock.json
+
+# Variables de entorno y configuración sensible
+.env
+config/config.json
+
+# Archivos temporales
+tokens.txt
+*.log
+*.backup
+
+# Base de datos local
+data/db.json
+
+# Logs
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

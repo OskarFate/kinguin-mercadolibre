@@ -1,0 +1,17 @@
+{
+  "kinguin": {
+    "apiKey": "TU_API_KEY_AQUI",
+    "apiUrl": "https://gateway.kinguin.net/esa/api/v1"
+  },
+  "mercadolibre": {
+    "clientId": "TU_CLIENT_ID_AQUI",
+    "clientSecret": "TU_CLIENT_SECRET_AQUI",
+    "accessToken": "TU_ACCESS_TOKEN_AQUI",
+    "redirectUri": "https://tu-dominio.com/callback"
+  },
+  "currency": {
+    "apiUrl": "https://api.exchangerate-api.com/v4/latest/EUR"
+  },
+  "priceMarkup": 1.2,
+  "port": 3000
+}

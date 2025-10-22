@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Kinguin a MercadoLibre</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .products-list {
+            margin-top: 20px;
+        }
+
+        .product-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-info h3 {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .product-info p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .product-link {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .product-link:hover {
+            background: #218838;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Panel de Control</h1>
+            <p>Kinguin → MercadoLibre</p>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📦 Procesar Producto</h2>
+            
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="kinguinId" 
+                    placeholder="Ingresa el ID de Kinguin (ej: 12345)"
+                    onkeypress="if(event.key === 'Enter') processProduct()"
+                >
+                <button onclick="processProduct()" id="processBtn">
+                    🚀 Procesar
+                </button>
+            </div>
+
+            <div id="status" class="status"></div>
+            <div id="loader" class="loader"></div>
+
+            <div id="result"></div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">📋 Productos Procesados</h2>
+            <div id="productsList" class="products-list">
+                <p style="color: #999; text-align: center;">No hay productos procesados aún</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cargar productos al iniciar
+        loadProducts();
+
+        async function processProduct() {
+            const kinguinId = document.getElementById('kinguinId').value.trim();
+            const statusDiv = document.getElementById('status');
+            const loader = document.getElementById('loader');
+            const processBtn = document.getElementById('processBtn');
+            const resultDiv = document.getElementById('result');
+
+            if (!kinguinId) {
+                showStatus('error', '❌ Por favor ingresa un ID de Kinguin');
+                return;
+            }
+
+            // Mostrar loading
+            processBtn.disabled = true;
+            loader.style.display = 'block';
+            statusDiv.style.display = 'none';
+            resultDiv.innerHTML = '';
+
+            try {
+                showStatus('loading', '⏳ Procesando... Esto puede tomar unos segundos');
+
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ kinguinId })
+                });
+
+                const result = await response.json();
+
+                loader.style.display = 'none';
+
+                if (result.success) {
+                    showStatus('success', `✅ ¡Producto publicado exitosamente!`);
+                    
+                    resultDiv.innerHTML = `
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                            <h3 style="color: #2e7d32; margin-bottom: 10px;">📦 ${result.product.name}</h3>
+                            <p><strong>Precio:</strong> €${result.product.priceEur} → $${result.product.priceClp.toLocaleString('es-CL')} CLP</p>
+                            <p><strong>ID ML:</strong> ${result.product.mercadolibreId}</p>
+                            <a href="${result.mercadolibre.permalink}" target="_blank" 
+                               style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">
+                                🔗 Ver en MercadoLibre
+                            </a>
+                        </div>
+                    `;
+
+                    document.getElementById('kinguinId').value = '';
+                    loadProducts();
+                } else {
+                    showStatus('error', `❌ Error: ${result.error}`);
+                }
+
+            } catch (error) {
+                loader.style.display = 'none';
+                showStatus('error', `❌ Error de conexión: ${error.message}`);
+            } finally {
+                processBtn.disabled = false;
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                const products = await response.json();
+
+                const listDiv = document.getElementById('productsList');
+
+                if (products.length === 0) {
+                    listDiv.innerHTML = '<p style="color: #999; text-align: center;">No hay productos procesados aún</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = products.map(product => `
+                    <div class="product-item">
+                        <div class="product-info">
+                            <h3>${product.name}</h3>
+                            <p>💰 $${product.priceClp.toLocaleString('es-CL')} CLP | 🆔 ${product.kinguinId}</p>
+                            <p style="font-size: 0.8em; color: #999;">⏰ ${new Date(product.createdAt).toLocaleString('es-CL')}</p>
+                        </div>
+                        ${product.permalink ? `<a href="${product.permalink}" target="_blank" class="product-link">Ver en ML 🔗</a>` : ''}
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+
+        // Recargar productos cada 30 segundos
+        setInterval(loadProducts, 30000);
+    </script>
+</body>
+</html>
